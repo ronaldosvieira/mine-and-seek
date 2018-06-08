@@ -63,15 +63,8 @@ if agent_host.receivedArgument("help"):
     print(agent_host.getUsage())
     exit(0)
 
-endCondition = ""
-timeoutCondition = ""
-if agent_host.receivedArgument("test"):
-    timeoutCondition = '<ServerQuitFromTimeUp timeLimitMs="240000" description="FAILED"/>'
-    endCondition = '''<AgentQuitFromCollectingItem>
-                        <Item type="diamond" description="PASSED"/>
-                      </AgentQuitFromCollectingItem>'''
-
-missionXML='''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+def getXML():
+    xml = '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
             <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             
               <About>
@@ -91,12 +84,9 @@ missionXML='''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
                   <!--Weather>rain</Weather-->
                 </ServerInitialConditions>
                 <ServerHandlers>
-                  <FlatWorldGenerator destroyAfterUse="true" forceReset="true"/>
-                  <DrawingDecorator>
-                    <DrawSphere x="-27" y="70" z="0" radius="30" type="air"/>
-
-                    <DrawEntity x="20.5" y="5.0" z="16.5" type="''' + MOB_TYPE + '''"/>
-                  </DrawingDecorator>
+                  <FlatWorldGenerator destroyAfterUse="false" forceReset="false"/>
+                  <!--DrawingDecorator>
+                  </DrawingDecorator-->
                   <!--ServerQuitFromTimeUp timeLimitMs="30000"/-->
                   <ServerQuitWhenAnyAgentFinishes/>
                 </ServerHandlers>
@@ -122,14 +112,37 @@ missionXML='''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
                   <ContinuousMovementCommands/>
                 </AgentHandlers>
               </AgentSection>
+
+              <!--AgentSection mode="Survival">
+                <Name>Runner</Name>
+                <AgentStart>
+                  <Placement x="20.5" y="5.0" z="16.5" yaw="270"/>
+                    <Inventory>
+                        <InventoryItem slot="8" type="diamond_sword"/>
+                    </Inventory>
+                </AgentStart>
+                <AgentHandlers>
+                  <ObservationFromFullStats/>
+                  <ObservationFromNearbyEntities>
+                    <Range name="entities" xrange="40" yrange="40" zrange="40"/>
+                  </ObservationFromNearbyEntities>
+                  <RewardForMissionEnd rewardForDeath="-100.0">
+                    <Reward description="PASSED" reward="100.0"/>
+                    <Reward description="FAILED" reward="-100.0"/>
+                  </RewardForMissionEnd>
+                  <ContinuousMovementCommands/>
+                </AgentHandlers>
+              </AgentSection-->
             </Mission>'''
+
+    return xml
 
 if sys.version_info[0] == 2:
     sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 else:
     import functools
     print = functools.partial(print, flush=True)
-my_mission = MalmoPython.MissionSpec(missionXML,True)
+my_mission = MalmoPython.MissionSpec(getXML(),True)
 
 my_mission_record = MalmoPython.MissionRecordSpec()
 max_retries = 3
