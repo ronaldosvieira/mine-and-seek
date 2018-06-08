@@ -129,13 +129,13 @@ def getXML():
                     <StartTime>12000</StartTime>
                     <AllowPassageOfTime>false</AllowPassageOfTime>
                   </Time>
-                  <!--Weather>rain</Weather-->
+                  <Weather>clear</Weather>
                 </ServerInitialConditions>
                 <ServerHandlers>
                   <FlatWorldGenerator destroyAfterUse="false" forceReset="false"/>
                   <!--DrawingDecorator>
                   </DrawingDecorator-->
-                  <!--ServerQuitFromTimeUp timeLimitMs="30000"/-->
+                  <ServerQuitFromTimeUp description="DIDNT_CATCH" timeLimitMs="30000"/>
                   <ServerQuitWhenAnyAgentFinishes/>
                 </ServerHandlers>
               </ServerSection>
@@ -143,10 +143,7 @@ def getXML():
               <AgentSection mode="Survival">
                 <Name>Seeker</Name>
                 <AgentStart>
-                  <Placement x="18.5" y="5.0" z="20.5" yaw="270"/>
-                    <Inventory>
-                        <InventoryItem slot="8" type="diamond_sword"/>
-                    </Inventory>
+                  <Placement x="0" y="5.0" z="0" yaw="0"/>
                 </AgentStart>
                 <AgentHandlers>
                   <ObservationFromFullStats/>
@@ -154,19 +151,23 @@ def getXML():
                     <Range name="entities" xrange="40" yrange="40" zrange="40"/>
                   </ObservationFromNearbyEntities>
                   <RewardForMissionEnd rewardForDeath="-100.0">
-                    <Reward description="PASSED" reward="100.0"/>
-                    <Reward description="FAILED" reward="-100.0"/>
+                    <Reward description="CATCH" reward="100.0"/>
+                    <Reward description="DIDNT_CATCH" reward="-100.0"/>
                   </RewardForMissionEnd>
+                  <AgentQuitFromCollectingItem>
+                    <Item type="diamond" description="CATCH"/>
+                  </AgentQuitFromCollectingItem>
                   <ContinuousMovementCommands/>
+                  <InventoryCommands/>
                 </AgentHandlers>
               </AgentSection>
 
               <AgentSection mode="Survival">
                 <Name>Runner</Name>
                 <AgentStart>
-                  <Placement x="20.5" y="5.0" z="16.5" yaw="270"/>
+                  <Placement x="0" y="5.0" z="10" yaw="0"/>
                     <Inventory>
-                        <InventoryItem slot="8" type="diamond_sword"/>
+                        <InventoryItem slot="0" type="diamond"/>
                     </Inventory>
                 </AgentStart>
                 <AgentHandlers>
@@ -175,10 +176,11 @@ def getXML():
                     <Range name="entities" xrange="40" yrange="40" zrange="40"/>
                   </ObservationFromNearbyEntities>
                   <RewardForMissionEnd rewardForDeath="-100.0">
-                    <Reward description="PASSED" reward="100.0"/>
-                    <Reward description="FAILED" reward="-100.0"/>
+                    <Reward description="CATCH" reward="-100.0"/>
+                    <Reward description="DIDNT_CATCH" reward="100.0"/>
                   </RewardForMissionEnd>
                   <ContinuousMovementCommands/>
+                  <InventoryCommands/>
                 </AgentHandlers>
               </AgentSection>
             </Mission>'''
@@ -196,6 +198,7 @@ my_mission_record = MalmoPython.MissionRecordSpec()
 expID = str(uuid.uuid4())
 
 for i in range(len(agent_hosts)):
+    agent_hosts[i].setRewardsPolicy(MalmoPython.RewardsPolicy.SUM_REWARDS)
     safeStartMission(agent_hosts[i], my_mission, client_pool, my_mission_record, i, expID)
 
 safeWaitForStart(agent_hosts)
@@ -216,7 +219,17 @@ def distance(x1, y1, x2, y2):
     return abs(x1 - x2) + abs(y1 - y2)
 
 def runner(agent, obs, yaw, pos, life):
-    agent.sendCommand("move 1")
+    agent.sendCommand("move 0.9")
+
+    if "entities" in obs:
+        for entity in obs['entities']:
+            if entity['name'] == 'Seeker':
+                xm, ym = entity['x'], entity['z']
+
+        dist = distance(pos[0], pos[2], xm, ym)
+
+        if dist < 3:
+            agent.sendCommand("discardCurrentItem")
 
 def seeker(agent, obs, yaw, pos, life):
     # Try to look somewhere interesting:
@@ -244,7 +257,7 @@ def seeker(agent, obs, yaw, pos, life):
 
     dist = distance(pos[0], pos[2], xm, ym)
 
-    if dist > 5:
+    if dist > 3:
         agent.sendCommand("move 1")
     else:
         agent.sendCommand("move 0")
@@ -287,9 +300,6 @@ while num_responsive_agents() > 0 and not timed_out:
 
 # mission has ended.
 print("Mission over")
-reward = world_state.rewards[-1].getValue()
+reward = list(map(lambda r: r.getValue(), world_state.rewards))
 print("Result: " + str(reward))
-if reward < 0:
-    exit(1)
-else:
-    exit(0)
+exit(0)
