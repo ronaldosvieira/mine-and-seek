@@ -241,10 +241,42 @@ def calcYawTo(entity_name, entities, x, y, z):
 def distance(x1, y1, x2, y2):
     return abs(x1 - x2) + abs(y1 - y2)
 
-def look_at(yaw, target_yaw):
-    pass
+def runner(agent, obs, yaw, pos, life):
+    agent.sendCommand("move 1")
+
+def seeker(agent, obs, yaw, pos, life):
+    # Try to look somewhere interesting:
+    if "entities" in obs:
+        yaw_to_mob = calcYawTo('Runner', obs['entities'], *pos)
+
+        for entity in obs['entities']:
+            if entity['name'] == 'Runner':
+                xm, ym = entity['x'], entity['z']
+
+    pitch = obs.get(u'Pitch')
+
+    if pitch < 0:
+        agent.sendCommand("pitch 0") # stop looking up
+
+    # Find shortest angular distance between the two yaws, preserving sign:
+    deltaYaw = yaw_to_mob - yaw
+    while deltaYaw < -180:
+        deltaYaw += 360;
+    while deltaYaw > 180:
+        deltaYaw -= 360;
+    deltaYaw /= 180.0;
+    # And turn:
+    agent.sendCommand("turn " + str(deltaYaw))
+
+    dist = distance(pos[0], pos[2], xm, ym)
+
+    if dist > 5:
+        agent.sendCommand("move 1")
+    else:
+        agent.sendCommand("move 0")
 
 running = True
+current_obs = [{} for x in range(NUM_AGENTS)]
 current_yaw = [0 for x in range(NUM_AGENTS)]
 current_pos = [(0, 0, 0) for x in range(NUM_AGENTS)]
 current_life = [20 for x in range(NUM_AGENTS)]
@@ -268,45 +300,16 @@ while num_responsive_agents() > 0 and not timed_out:
 
             obvsText = world_state.observations[-1].text
             data = json.loads(obvsText)
+            current_obs[i] = data
 
             current_yaw[i] = data.get(u'Yaw', current_yaw[i])
             current_life[i] = data.get(u'Life', current_life[i])
 
             if 'XPos' in data and 'YPos' in data and 'ZPos' in data:
                 current_pos[i] = (data.get(u'XPos'), data.get(u'YPos'), data.get(u'ZPos'))
-            
-            if data['Name'] == 'Seeker':
-                # Try to look somewhere interesting:
-                if "entities" in data:
-                    yaw_to_mob = calcYawTo('Runner', data['entities'], *current_pos[i])
 
-                    for entity in data['entities']:
-                        if entity['name'] == 'Runner':
-                            xm, ym = entity['x'], entity['z']
-
-                pitch = data.get(u'Pitch')
-
-                if pitch < 0:
-                    agent.sendCommand("pitch 0") # stop looking up
-
-                # Find shortest angular distance between the two yaws, preserving sign:
-                deltaYaw = yaw_to_mob - current_yaw[i]
-                while deltaYaw < -180:
-                    deltaYaw += 360;
-                while deltaYaw > 180:
-                    deltaYaw -= 360;
-                deltaYaw /= 180.0;
-                # And turn:
-                agent.sendCommand("turn " + str(deltaYaw))
-
-                dist = distance(current_pos[i][0], current_pos[i][2], xm, ym)
-
-                if dist > 5:
-                    agent.sendCommand("move 1")
-                else:
-                    agent.sendCommand("move 0")
-            elif data['Name'] == 'Runner':
-                agent.sendCommand("move 1")
+    runner(agent_hosts[1], current_obs[1], current_yaw[1], current_pos[1], current_life[1])
+    seeker(agent_hosts[0], current_obs[0], current_yaw[0], current_pos[0], current_life[0])
 
 # mission has ended.
 print("Mission over")
