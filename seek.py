@@ -37,31 +37,105 @@ import json
 import random
 import re
 import math
+import uuid
+from collections import namedtuple
+
+EntityInfo = namedtuple('EntityInfo', 'x, y, z, name')
+
+# Create one agent host for parsing:
+agent_hosts = [MalmoPython.AgentHost()]
+
+# Parse the command-line options:
+agent_hosts[0].addOptionalFlag("debug,d", "Display debug information.")
+#agent_hosts[0].addOptionalIntArgument("agents,n", "Number of agents to use.", 2)
+
+try:
+    agent_hosts[0].parse(sys.argv)
+except RuntimeError as e:
+    print('ERROR:', e)
+    print(agent_hosts[0].getUsage())
+    exit(1)
+if agent_hosts[0].receivedArgument("help"):
+    print(agent_hosts[0].getUsage())
+    exit(0)
+
+agents_requested = 2#agent_hosts[0].getIntArgument("agents")
+
+DEBUG = agent_hosts[0].receivedArgument("debug")
+NUM_AGENTS = max(2, agents_requested)
 
 # For a bit more fun, set MOB_TYPE = "Creeper"...
 MOB_TYPE = "Villager"
 
-def calcYawTo(entity_name, entities, x, y, z):
-    ''' Find the mob we are following, and calculate the yaw we need in order to face it '''
-    for ent in entities:
-        if ent['name'] == entity_name:
-            dx = ent['x'] - x
-            dz = ent['z'] - z
-            yaw = -180 * math.atan2(dx, dz) / math.pi
-            return yaw
-    return 0
+agent_hosts += [MalmoPython.AgentHost() for x in range(1, NUM_AGENTS)]
 
-agent_host = MalmoPython.AgentHost()
+# Set up debug output:
+for ah in agent_hosts:
+    ah.setDebugOutput(DEBUG) # Turn client-pool connection messages on/off.
 
-try:
-    agent_host.parse(sys.argv)
-except RuntimeError as e:
-    print('ERROR:', e)
-    print(agent_host.getUsage())
-    exit(1)
-if agent_host.receivedArgument("help"):
-    print(agent_host.getUsage())
-    exit(0)
+if sys.version_info[0] == 2:
+    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # flush print output immediately
+else:
+    import functools
+    print = functools.partial(print, flush = True)
+
+def safeStartMission(agent_host, mission, client_pool, mission_record, role, expId):
+    used_attempts = 0
+    max_attempts = 5
+    print("Calling startMission for role", role)
+    while True:
+        try:
+            # Attempt start:
+            agent_host.startMission(mission, client_pool, mission_record, role, expId)
+            break
+        except MalmoPython.MissionException as e:
+            errorCode = e.details.errorCode
+            if errorCode == MalmoPython.MissionErrorCode.MISSION_SERVER_WARMING_UP:
+                print("Server not quite ready yet - waiting...")
+                time.sleep(2)
+            elif errorCode == MalmoPython.MissionErrorCode.MISSION_INSUFFICIENT_CLIENTS_AVAILABLE:
+                print("Not enough available Minecraft instances running.")
+                used_attempts += 1
+                if used_attempts < max_attempts:
+                    print("Will wait in case they are starting up.", max_attempts - used_attempts, "attempts left.")
+                    time.sleep(2)
+            elif errorCode == MalmoPython.MissionErrorCode.MISSION_SERVER_NOT_FOUND:
+                print("Server not found - has the mission with role 0 been started yet?")
+                used_attempts += 1
+                if used_attempts < max_attempts:
+                    print("Will wait and retry.", max_attempts - used_attempts, "attempts left.")
+                    time.sleep(2)
+            else:
+                print("Other error:", e.message)
+                print("Waiting will not help here - bailing immediately.")
+                exit(1)
+        if used_attempts == max_attempts:
+            print("All chances used up - bailing now.")
+            exit(1)
+    print("startMission called okay.")
+
+def safeWaitForStart(agent_hosts):
+    print("Waiting for the mission to start", end=' ')
+    start_flags = [False for a in agent_hosts]
+    start_time = time.time()
+    time_out = 120  # Allow a two minute timeout.
+    while not all(start_flags) and time.time() - start_time < time_out:
+        states = [a.peekWorldState() for a in agent_hosts]
+        start_flags = [w.has_mission_begun for w in states]
+        errors = [e for w in states for e in w.errors]
+        if len(errors) > 0:
+            print("Errors waiting for mission start:")
+            for e in errors:
+                print(e.text)
+            print("Bailing now.")
+            exit(1)
+        time.sleep(0.1)
+        print(".", end=' ')
+    if time.time() - start_time >= time_out:
+        print("Timed out while waiting for mission to start - bailing.")
+        exit(1)
+    print()
+    print("Mission has started.")
 
 def getXML():
     xml = '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
@@ -113,7 +187,7 @@ def getXML():
                 </AgentHandlers>
               </AgentSection>
 
-              <!--AgentSection mode="Survival">
+              <AgentSection mode="Survival">
                 <Name>Runner</Name>
                 <AgentStart>
                   <Placement x="20.5" y="5.0" z="16.5" yaw="270"/>
@@ -132,41 +206,37 @@ def getXML():
                   </RewardForMissionEnd>
                   <ContinuousMovementCommands/>
                 </AgentHandlers>
-              </AgentSection-->
+              </AgentSection>
             </Mission>'''
 
     return xml
 
-if sys.version_info[0] == 2:
-    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
-else:
-    import functools
-    print = functools.partial(print, flush=True)
-my_mission = MalmoPython.MissionSpec(getXML(),True)
+# Set up a client pool
+client_pool = MalmoPython.ClientPool()
+for x in range(10000, 10000 + NUM_AGENTS):
+    client_pool.add(MalmoPython.ClientInfo('127.0.0.1', x))
 
+my_mission = MalmoPython.MissionSpec(getXML(), True)
 my_mission_record = MalmoPython.MissionRecordSpec()
-max_retries = 3
-for retry in range(max_retries):
-    try:
-        agent_host.startMission( my_mission, my_mission_record )
-        break
-    except RuntimeError as e:
-        if retry == max_retries - 1:
-            print("Error starting mission",e)
-            print("Is the game running?")
-            exit(1)
-        else:
-            time.sleep(2)
 
-world_state = agent_host.getWorldState()
-while not world_state.has_mission_begun:
-    time.sleep(0.1)
-    world_state = agent_host.getWorldState()
+expID = str(uuid.uuid4())
 
-'''agent_host.sendCommand("use 1")     # Click on the minecart...
-agent_host.sendCommand("use 0")
-agent_host.sendCommand("move 1")    # And start moving forward...
-agent_host.sendCommand("pitch -0.1")    # Look up'''
+for i in range(len(agent_hosts)):
+    safeStartMission(agent_hosts[i], my_mission, client_pool, my_mission_record, i, expID)
+
+safeWaitForStart(agent_hosts)
+
+time.sleep(1)
+
+def calcYawTo(entity_name, entities, x, y, z):
+    ''' Find the mob we are following, and calculate the yaw we need in order to face it '''
+    for ent in entities:
+        if ent['name'] == entity_name:
+            dx = ent['x'] - x
+            dz = ent['z'] - z
+            yaw = -180 * math.atan2(dx, dz) / math.pi
+            return yaw
+    return 0
 
 def distance(x1, y1, x2, y2):
     return abs(x1 - x2) + abs(y1 - y2)
@@ -174,46 +244,69 @@ def distance(x1, y1, x2, y2):
 def look_at(yaw, target_yaw):
     pass
 
+running = True
+current_yaw = [0 for x in range(NUM_AGENTS)]
+current_pos = [(0, 0, 0) for x in range(NUM_AGENTS)]
+current_life = [20 for x in range(NUM_AGENTS)]
+unresponsive_count = [10 for x in range(NUM_AGENTS)]
+num_responsive_agents = lambda: sum([urc > 0 for urc in unresponsive_count])
+
+timed_out = False
+
 yaw_to_mob = 0
 
-while world_state.is_mission_running:
-    world_state = agent_host.getWorldState()
+while num_responsive_agents() > 0 and not timed_out:
+    for i in range(NUM_AGENTS):
+        agent = agent_hosts[i]
 
-    if world_state.number_of_observations_since_last_state > 0:
-        obvsText = world_state.observations[-1].text
-        data = json.loads(obvsText) # observation comes in as a JSON string...
+        world_state = agent.getWorldState()
 
-        current_x = data.get(u'XPos', 0)
-        current_z = data.get(u'ZPos', 0)
-        current_y = data.get(u'YPos', 0)
-        yaw = data.get(u'Yaw', 0)
-        pitch = data.get(u'Pitch', 0)
-        
-        # Try to look somewhere interesting:
-        if "entities" in data:
-            yaw_to_mob = calcYawTo('Villager', data['entities'], 
-                            current_x, current_y, current_z)
-            for entity in data['entities']:
-                if entity['name'] == 'Villager':
-                    xm, ym = entity['x'], entity['z']
-        if pitch < 0:
-            agent_host.sendCommand("pitch 0") # stop looking up
-        # Find shortest angular distance between the two yaws, preserving sign:
-        deltaYaw = yaw_to_mob - yaw
-        while deltaYaw < -180:
-            deltaYaw += 360;
-        while deltaYaw > 180:
-            deltaYaw -= 360;
-        deltaYaw /= 180.0;
-        # And turn:
-        agent_host.sendCommand("turn " + str(deltaYaw))
+        if world_state.is_mission_running == False:
+            timed_out = True
+        elif world_state.number_of_observations_since_last_state > 0:
+            unresponsive_count[i] = 10
 
-        dist = distance(current_x, current_z, xm, ym)
+            obvsText = world_state.observations[-1].text
+            data = json.loads(obvsText)
 
-        if dist > 5:
-            agent_host.sendCommand("move 1")
-        else:
-            agent_host.sendCommand("move 0")
+            current_yaw[i] = data.get(u'Yaw', current_yaw[i])
+            current_life[i] = data.get(u'Life', current_life[i])
+
+            if 'XPos' in data and 'YPos' in data and 'ZPos' in data:
+                current_pos[i] = (data.get(u'XPos'), data.get(u'YPos'), data.get(u'ZPos'))
+            
+            if data['Name'] == 'Seeker':
+                # Try to look somewhere interesting:
+                if "entities" in data:
+                    yaw_to_mob = calcYawTo('Runner', data['entities'], *current_pos[i])
+
+                    for entity in data['entities']:
+                        if entity['name'] == 'Runner':
+                            xm, ym = entity['x'], entity['z']
+
+                pitch = data.get(u'Pitch')
+
+                if pitch < 0:
+                    agent.sendCommand("pitch 0") # stop looking up
+
+                # Find shortest angular distance between the two yaws, preserving sign:
+                deltaYaw = yaw_to_mob - current_yaw[i]
+                while deltaYaw < -180:
+                    deltaYaw += 360;
+                while deltaYaw > 180:
+                    deltaYaw -= 360;
+                deltaYaw /= 180.0;
+                # And turn:
+                agent.sendCommand("turn " + str(deltaYaw))
+
+                dist = distance(current_pos[i][0], current_pos[i][2], xm, ym)
+
+                if dist > 5:
+                    agent.sendCommand("move 1")
+                else:
+                    agent.sendCommand("move 0")
+            elif data['Name'] == 'Runner':
+                agent.sendCommand("move 1")
 
 # mission has ended.
 print("Mission over")
