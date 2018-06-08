@@ -150,12 +150,11 @@ def getXML():
                   <ObservationFromNearbyEntities>
                     <Range name="entities" xrange="40" yrange="40" zrange="40"/>
                   </ObservationFromNearbyEntities>
-                  <RewardForMissionEnd rewardForDeath="-100.0">
-                    <Reward description="CATCH" reward="100.0"/>
-                    <Reward description="DIDNT_CATCH" reward="-100.0"/>
-                  </RewardForMissionEnd>
+                  <RewardForCollectingItem>
+                    <Item type="diamond" reward="50"/>
+                  </RewardForCollectingItem>
                   <AgentQuitFromCollectingItem>
-                    <Item type="diamond" description="CATCH"/>
+                    <Item type="diamond" description="CATCH" />
                   </AgentQuitFromCollectingItem>
                   <ContinuousMovementCommands/>
                   <InventoryCommands/>
@@ -175,10 +174,9 @@ def getXML():
                   <ObservationFromNearbyEntities>
                     <Range name="entities" xrange="40" yrange="40" zrange="40"/>
                   </ObservationFromNearbyEntities>
-                  <RewardForMissionEnd rewardForDeath="-100.0">
-                    <Reward description="CATCH" reward="-100.0"/>
-                    <Reward description="DIDNT_CATCH" reward="100.0"/>
-                  </RewardForMissionEnd>
+                  <RewardForDiscardingItem>
+                    <Item type="diamond" reward="-50"/>
+                  </RewardForDiscardingItem>
                   <ContinuousMovementCommands/>
                   <InventoryCommands/>
                 </AgentHandlers>
@@ -198,7 +196,7 @@ my_mission_record = MalmoPython.MissionRecordSpec()
 expID = str(uuid.uuid4())
 
 for i in range(len(agent_hosts)):
-    agent_hosts[i].setRewardsPolicy(MalmoPython.RewardsPolicy.SUM_REWARDS)
+    agent_hosts[i].setRewardsPolicy(MalmoPython.RewardsPolicy.KEEP_ALL_REWARDS)
     safeStartMission(agent_hosts[i], my_mission, client_pool, my_mission_record, i, expID)
 
 safeWaitForStart(agent_hosts)
