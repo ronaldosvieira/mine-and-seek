@@ -41,10 +41,10 @@ import math
 # For a bit more fun, set MOB_TYPE = "Creeper"...
 MOB_TYPE = "Villager"
 
-def calcYawToMob(entities, x, y, z):
+def calcYawTo(entity_name, entities, x, y, z):
     ''' Find the mob we are following, and calculate the yaw we need in order to face it '''
     for ent in entities:
-        if ent['name'] == MOB_TYPE:
+        if ent['name'] == entity_name:
             dx = ent['x'] - x
             dz = ent['z'] - z
             yaw = -180 * math.atan2(dx, dz) / math.pi
@@ -52,6 +52,7 @@ def calcYawToMob(entities, x, y, z):
     return 0
 
 agent_host = MalmoPython.AgentHost()
+
 try:
     agent_host.parse(sys.argv)
 except RuntimeError as e:
@@ -161,7 +162,6 @@ def look_at(yaw, target_yaw):
     pass
 
 yaw_to_mob = 0
-turn_key = ""
 
 while world_state.is_mission_running:
     world_state = agent_host.getWorldState()
@@ -178,7 +178,8 @@ while world_state.is_mission_running:
         
         # Try to look somewhere interesting:
         if "entities" in data:
-            yaw_to_mob = calcYawToMob(data['entities'], current_x, current_y, current_z)
+            yaw_to_mob = calcYawTo('Villager', data['entities'], 
+                            current_x, current_y, current_z)
             for entity in data['entities']:
                 if entity['name'] == 'Villager':
                     xm, ym = entity['x'], entity['z']
