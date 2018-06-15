@@ -144,12 +144,18 @@ def getXML():
                     <DrawLine x1="5" y1="4" z1="15" x2="1" y2="4" z2="19" type="stone"/>
                     <DrawLine x1="5" y1="5" z1="15" x2="1" y2="5" z2="19" type="stone"/>
                     <DrawLine x1="5" y1="6" z1="15" x2="1" y2="6" z2="19" type="stone"/>
+                    <DrawBlock x="1" y="6" z="16" type="stone"/>
+                    <DrawBlock x="2" y="6" z="16" type="stone"/>
+                    <DrawBlock x="1" y="6" z="17" type="stone"/>
 
                     <!-- 3 -->
                     <DrawCuboid x1="29" y1="4" z1="10" x2="25" y2="6" z2="15" type="stone"/>
                     <DrawLine x1="25" y1="4" z1="15" x2="29" y2="4" z2="19" type="stone"/>
                     <DrawLine x1="25" y1="5" z1="15" x2="29" y2="5" z2="19" type="stone"/>
                     <DrawLine x1="25" y1="6" z1="15" x2="29" y2="6" z2="19" type="stone"/>
+                    <DrawBlock x="29" y="6" z="16" type="stone"/>
+                    <DrawBlock x="28" y="6" z="16" type="stone"/>
+                    <DrawBlock x="29" y="6" z="17" type="stone"/>
 
                     <!-- 4 -->
                     <DrawCuboid x1="20" y1="4" z1="20" x2="18" y2="6" z2="35" type="stone"/>
@@ -159,15 +165,21 @@ def getXML():
                     <DrawLine x1="25" y1="4" z1="25" x2="20" y2="4" z2="25" type="stone"/>
                     <DrawLine x1="25" y1="5" z1="25" x2="20" y2="5" z2="25" type="stone"/>
                     <DrawLine x1="25" y1="6" z1="25" x2="20" y2="6" z2="25" type="stone"/>
+                    <DrawLine x1="25" y1="6" z1="24" x2="20" y2="6" z2="24" type="stone"/>
+                    <DrawLine x1="24" y1="6" z1="23" x2="20" y2="6" z2="23" type="stone"/>
+                    <DrawBlock x="21" y="6" z="22" type="stone"/>
 
                     <!-- 5 -->
-                    <DrawCuboid x1="10" y1="4" z1="20" x2="13" y2="6" z2="30" type="stone"/>
+                    <DrawCuboid x1="10" y1="4" z1="20" x2="12" y2="6" z2="30" type="stone"/>
                     <DrawLine x1="10" y1="4" z1="20" x2="5" y2="4" z2="25" type="stone"/>
                     <DrawLine x1="10" y1="5" z1="20" x2="5" y2="5" z2="25" type="stone"/>
                     <DrawLine x1="10" y1="6" z1="20" x2="5" y2="6" z2="25" type="stone"/>
                     <DrawLine x1="5" y1="4" z1="25" x2="10" y2="4" z2="25" type="stone"/>
                     <DrawLine x1="5" y1="5" z1="25" x2="10" y2="5" z2="25" type="stone"/>
                     <DrawLine x1="5" y1="6" z1="25" x2="10" y2="6" z2="25" type="stone"/>
+                    <DrawLine x1="5" y1="6" z1="24" x2="10" y2="6" z2="24" type="stone"/>
+                    <DrawLine x1="6" y1="6" z1="23" x2="10" y2="6" z2="23" type="stone"/>
+                    <DrawBlock x="9" y="6" z="22" type="stone"/>
 
                     <!-- 6 -->
                     <DrawCuboid x1="29" y1="4" z1="30" x2="25" y2="6" z2="35" type="stone"/>
