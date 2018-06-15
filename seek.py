@@ -130,10 +130,56 @@ def getXML():
                   <Weather>clear</Weather>
                 </ServerInitialConditions>
                 <ServerHandlers>
-                  <FlatWorldGenerator destroyAfterUse="false" forceReset="false"/>
-                  <!--DrawingDecorator>
-                  </DrawingDecorator-->
-                  <ServerQuitFromTimeUp description="DIDNT_CATCH" timeLimitMs="30000"/>
+                  <FlatWorldGenerator destroyAfterUse="true" forceReset="true"/>
+                  <DrawingDecorator>
+                    <DrawCuboid x1="0" y1="4" z1="0" x2="30" y2="7" z2="40" type="brick_block"/>
+                    <DrawCuboid x1="1" y1="4" z1="1" x2="29" y2="7" z2="39" type="air"/>
+
+                    <!-- 1 -->
+                    <DrawCuboid x1="10" y1="4" z1="10" x2="20" y2="6" z2="15" type="stone"/>
+                    <DrawCuboid x1="13" y1="4" z1="13" x2="17" y2="6" z2="15" type="air"/>
+
+                    <!-- 2 -->
+                    <DrawCuboid x1="1" y1="4" z1="10" x2="5" y2="6" z2="15" type="stone"/>
+                    <DrawLine x1="5" y1="4" z1="15" x2="1" y2="4" z2="19" type="stone"/>
+                    <DrawLine x1="5" y1="5" z1="15" x2="1" y2="5" z2="19" type="stone"/>
+                    <DrawLine x1="5" y1="6" z1="15" x2="1" y2="6" z2="19" type="stone"/>
+
+                    <!-- 3 -->
+                    <DrawCuboid x1="29" y1="4" z1="10" x2="25" y2="6" z2="15" type="stone"/>
+                    <DrawLine x1="25" y1="4" z1="15" x2="29" y2="4" z2="19" type="stone"/>
+                    <DrawLine x1="25" y1="5" z1="15" x2="29" y2="5" z2="19" type="stone"/>
+                    <DrawLine x1="25" y1="6" z1="15" x2="29" y2="6" z2="19" type="stone"/>
+
+                    <!-- 4 -->
+                    <DrawCuboid x1="20" y1="4" z1="20" x2="18" y2="6" z2="35" type="stone"/>
+                    <DrawLine x1="20" y1="4" z1="20" x2="25" y2="4" z2="25" type="stone"/>
+                    <DrawLine x1="20" y1="5" z1="20" x2="25" y2="5" z2="25" type="stone"/>
+                    <DrawLine x1="20" y1="6" z1="20" x2="25" y2="6" z2="25" type="stone"/>
+                    <DrawLine x1="25" y1="4" z1="25" x2="20" y2="4" z2="25" type="stone"/>
+                    <DrawLine x1="25" y1="5" z1="25" x2="20" y2="5" z2="25" type="stone"/>
+                    <DrawLine x1="25" y1="6" z1="25" x2="20" y2="6" z2="25" type="stone"/>
+
+                    <!-- 5 -->
+                    <DrawCuboid x1="10" y1="4" z1="20" x2="13" y2="6" z2="30" type="stone"/>
+                    <DrawLine x1="10" y1="4" z1="20" x2="5" y2="4" z2="25" type="stone"/>
+                    <DrawLine x1="10" y1="5" z1="20" x2="5" y2="5" z2="25" type="stone"/>
+                    <DrawLine x1="10" y1="6" z1="20" x2="5" y2="6" z2="25" type="stone"/>
+                    <DrawLine x1="5" y1="4" z1="25" x2="10" y2="4" z2="25" type="stone"/>
+                    <DrawLine x1="5" y1="5" z1="25" x2="10" y2="5" z2="25" type="stone"/>
+                    <DrawLine x1="5" y1="6" z1="25" x2="10" y2="6" z2="25" type="stone"/>
+
+                    <!-- 6 -->
+                    <DrawCuboid x1="29" y1="4" z1="30" x2="25" y2="6" z2="35" type="stone"/>
+
+                    <!-- 7 -->
+                    <DrawCuboid x1="13" y1="4" z1="35" x2="13" y2="6" z2="40" type="stone"/>
+                    <DrawCuboid x1="13" y1="4" z1="35" x2="5" y2="6" z2="35" type="stone"/>
+                    <DrawCuboid x1="5" y1="4" z1="30" x2="1" y2="6" z2="30" type="stone"/>
+
+                    <DrawBlock x="15" y="3" z="1" type="diamond_block"/>
+                  </DrawingDecorator>
+                  <!--ServerQuitFromTimeUp description="DIDNT_CATCH" timeLimitMs="30000"/-->
                   <ServerQuitWhenAnyAgentFinishes/>
                 </ServerHandlers>
               </ServerSection>
@@ -141,7 +187,7 @@ def getXML():
               <AgentSection mode="Survival">
                 <Name>Seeker</Name>
                 <AgentStart>
-                  <Placement x="0" y="5.0" z="0" yaw="0"/>
+                  <Placement x="15.5" y="5.0" z="1.5" yaw="0"/>
                 </AgentStart>
                 <AgentHandlers>
                   <ObservationFromFullStats/>
