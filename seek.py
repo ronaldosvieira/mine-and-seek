@@ -21,7 +21,7 @@ agent_hosts = [MalmoPython.AgentHost()]
 
 # Parse the command-line options:
 agent_hosts[0].addOptionalFlag("debug,d", "Display debug information.")
-#agent_hosts[0].addOptionalIntArgument("agents,n", "Number of agents to use.", 2)
+agent_hosts[0].addOptionalIntArgument("agents,n", "Number of agents to use.", 1)
 
 try:
     agent_hosts[0].parse(sys.argv)
@@ -33,10 +33,8 @@ if agent_hosts[0].receivedArgument("help"):
     print(agent_hosts[0].getUsage())
     exit(0)
 
-agents_requested = 2#agent_hosts[0].getIntArgument("agents")
-
 DEBUG = agent_hosts[0].receivedArgument("debug")
-NUM_AGENTS = max(2, agents_requested)
+NUM_AGENTS = agent_hosts[0].getIntArgument("agents")
 
 # For a bit more fun, set MOB_TYPE = "Creeper"...
 MOB_TYPE = "Villager"
@@ -120,7 +118,7 @@ def getXML():
               </About>
 
               <ModSettings>
-                <MsPerTick>20</MsPerTick>
+                <MsPerTick>50</MsPerTick>
               </ModSettings>
               
               <ServerSection>
@@ -161,7 +159,7 @@ def getXML():
                 </AgentHandlers>
               </AgentSection>
 
-              <AgentSection mode="Survival">
+              <!--AgentSection mode="Survival">
                 <Name>Runner</Name>
                 <AgentStart>
                   <Placement x="0" y="5.0" z="10" yaw="0"/>
@@ -180,7 +178,7 @@ def getXML():
                   <ContinuousMovementCommands/>
                   <InventoryCommands/>
                 </AgentHandlers>
-              </AgentSection>
+              </AgentSection-->
             </Mission>'''
 
     return xml
@@ -293,8 +291,8 @@ while num_responsive_agents() > 0 and not timed_out:
             if 'XPos' in data and 'YPos' in data and 'ZPos' in data:
                 current_pos[i] = (data.get(u'XPos'), data.get(u'YPos'), data.get(u'ZPos'))
 
-    runner(agent_hosts[1], current_obs[1], current_yaw[1], current_pos[1], current_life[1])
-    seeker(agent_hosts[0], current_obs[0], current_yaw[0], current_pos[0], current_life[0])
+    #runner(agent_hosts[1], current_obs[1], current_yaw[1], current_pos[1], current_life[1])
+    #seeker(agent_hosts[0], current_obs[0], current_yaw[0], current_pos[0], current_life[0])
 
 # mission has ended.
 print("Mission over")
