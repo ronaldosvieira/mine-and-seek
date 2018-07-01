@@ -230,7 +230,7 @@ def getXML():
                   <AgentQuitFromCollectingItem>
                     <Item type="diamond" description="CATCH" />
                   </AgentQuitFromCollectingItem>
-                  <ContinuousMovementCommands/>
+                  <ContinuousMovementCommands turnSpeedDegs="840"/>
                   <InventoryCommands/>
                 </AgentHandlers>
               </AgentSection>
@@ -251,7 +251,7 @@ def getXML():
                   <RewardForDiscardingItem>
                     <Item type="diamond" reward="-50"/>
                   </RewardForDiscardingItem>
-                  <ContinuousMovementCommands/>
+                  <ContinuousMovementCommands turnSpeedDegs="840"/>
                   <InventoryCommands/>
                 </AgentHandlers>
               </AgentSection-->
@@ -275,17 +275,58 @@ for i in range(len(agent_hosts)):
 
 safeWaitForStart(agent_hosts)
 
+vg = {
+    '0': (15.5, 3, 1.5),
+    'A': (22.5, 3, 8.5),
+    'B': (8.5, 3, 8.5),
+    'C': (15.5, 3, 13.5),
+    'D': (23.5, 3, 18.5),
+    'E': (15.5, 3, 18.5),
+    'F': (7.5, 3, 18.5),
+    'G': (28.5, 3, 25.5),
+    'H': (23.5, 3, 28.5),
+    'I': (7.5, 3, 28.5),
+    'J': (2.5, 3, 25.5),
+    'K': (15.5, 3, 32.5),
+    'L': (7.5, 3, 32.5),
+    'M': (28.5, 3, 38.5),
+    'N': (23.5, 3, 38.5),
+    'O': (18.5, 3, 38.5),
+    'P': (8.5, 3, 38.5),
+    'Q': (2.5, 3, 35.5),
+}
+
+edges = {
+    '0': {'A', 'B'},
+    'A': {'0', 'B', 'D'},
+    'B': {'0', 'A', 'F'},
+    'C': {'E'},
+    'D': {'A', 'E', 'G'},
+    'E': {'C', 'D', 'F', 'K'},
+    'F': {'B', 'E', 'J'},
+    'G': {'D', 'H'},
+    'H': {'G', 'N'},
+    'I': {'J', 'L'},
+    'J': {'F', 'I'},
+    'K': {'E', 'L', 'O'},
+    'L': {'I', 'K', 'Q'},
+    'M': {'N'},
+    'N': {'H', 'M', 'O'},
+    'O': {'K', 'N'},
+    'P': {'Q'},
+    'Q': {'L', 'P'}
+}
+
+is_in = '0'
+going_to = 'A'
+
 time.sleep(1)
 
-def calcYawTo(entity_name, entities, x, y, z):
-    ''' Find the mob we are following, and calculate the yaw we need in order to face it '''
-    for ent in entities:
-        if ent['name'] == entity_name:
-            dx = ent['x'] - x
-            dz = ent['z'] - z
-            yaw = -180 * math.atan2(dx, dz) / math.pi
-            return yaw
-    return 0
+def calcYawTo(fx, fy, fz, x, y, z):
+    dx = fx - x
+    dz = fz - z
+
+    return -180 * math.atan2(dx, dz) / math.pi
 
 def distance(x1, y1, x2, y2):
     return abs(x1 - x2) + abs(y1 - y2)
@@ -304,13 +345,12 @@ def runner(agent, obs, yaw, pos, life):
             agent.sendCommand("discardCurrentItem")
 
 def seeker(agent, obs, yaw, pos, life):
-    # Try to look somewhere interesting:
-    if "entities" in obs:
-        yaw_to_mob = calcYawTo('Runner', obs['entities'], *pos)
+    global is_in, going_to
 
-        for entity in obs['entities']:
-            if entity['name'] == 'Runner':
-                xm, ym = entity['x'], entity['z']
+    if is_in == going_to:
+        agent.sendCommand("move 0")
+    else:
+        yaw_to_next = calcYawTo(*vg[going_to], *pos)
 
     pitch = obs.get(u'Pitch')
 
@@ -318,7 +358,7 @@ def seeker(agent, obs, yaw, pos, life):
         agent.sendCommand("pitch 0") # stop looking up
 
     # Find shortest angular distance between the two yaws, preserving sign:
-    deltaYaw = yaw_to_mob - yaw
+    deltaYaw = yaw_to_next - yaw
     while deltaYaw < -180:
         deltaYaw += 360;
     while deltaYaw > 180:
@@ -327,12 +367,16 @@ def seeker(agent, obs, yaw, pos, life):
     # And turn:
     agent.sendCommand("turn " + str(deltaYaw))
 
-    dist = distance(pos[0], pos[2], xm, ym)
+    dist = distance(pos[0], pos[2], vg[going_to][0], vg[going_to][2])
 
-    if dist > 3:
+    if dist > 1.8:
         agent.sendCommand("move 1")
     else:
         agent.sendCommand("move 0")
+
+        is_in = going_to
+        going_to = random.choice(list(edges[going_to] - {is_in}))
+        print("going to ", going_to)
 
 running = True
 current_obs = [{} for x in range(NUM_AGENTS)]
@@ -368,7 +412,7 @@ while num_responsive_agents() > 0 and not timed_out:
                 current_pos[i] = (data.get(u'XPos'), data.get(u'YPos'), data.get(u'ZPos'))
 
     #runner(agent_hosts[1], current_obs[1], current_yaw[1], current_pos[1], current_life[1])
-    #seeker(agent_hosts[0], current_obs[0], current_yaw[0], current_pos[0], current_life[0])
+    seeker(agent_hosts[0], current_obs[0], current_yaw[0], current_pos[0], current_life[0])
 
 # mission has ended.
 print("Mission over")
