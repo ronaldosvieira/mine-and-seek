@@ -317,8 +317,61 @@ edges = {
     'Q': {'L', 'P'}
 }
 
-is_in = '0'
-going_to = 'A'
+class Agent:
+    def __init__(self, agent_host, starting_pos = '0'):
+        self.agent_host = agent_host
+
+        self.current = starting_pos
+        self.going_to = starting_pos
+
+    def update(self, obs):
+        self.pitch = obs['Pitch']
+        self.yaw = obs['Yaw']
+        self.pos = (obs['XPos'], obs['YPos'], obs['ZPos'])
+        self.life = obs['Life']
+
+    def do(self, command):
+        self.agent_host.sendCommand(command)
+
+    def go_to(self, node):
+        self.going_to = node
+
+    def get_next(self):
+        return random.choice(list(edges[self.going_to]))
+
+    def loop(self):
+        if self.pitch < 0:
+            self.do("pitch 0")
+
+        yaw_to_next = calcYawTo(*vg[self.going_to], *self.pos)
+
+        # Find shortest angular distance between the two yaws, preserving sign:
+        deltaYaw = yaw_to_next - self.yaw
+
+        while deltaYaw < -180: deltaYaw += 360;
+        while deltaYaw > 180: deltaYaw -= 360;
+
+        deltaYaw /= 180.0;
+
+        # And turn:
+        self.do("turn " + str(deltaYaw))
+
+        dist = distance(self.pos[0], self.pos[2], vg[self.going_to][0], vg[self.going_to][2])
+
+        if dist > 1.8:
+            agent.sendCommand("move 1")
+        else:
+            agent.sendCommand("move 0")
+
+            self.current = self.going_to
+            self.going_to = self.get_next()
+            print("going to", self.going_to)
+
+class Seeker(Agent):
+    pass
+
+class Runner(Agent):
+    pass
 
 time.sleep(1)
 
@@ -331,53 +384,6 @@ def calcYawTo(fx, fy, fz, x, y, z):
 def distance(x1, y1, x2, y2):
     return abs(x1 - x2) + abs(y1 - y2)
 
-def runner(agent, obs, yaw, pos, life):
-    agent.sendCommand("move 0.9")
-
-    if "entities" in obs:
-        for entity in obs['entities']:
-            if entity['name'] == 'Seeker':
-                xm, ym = entity['x'], entity['z']
-
-        dist = distance(pos[0], pos[2], xm, ym)
-
-        if dist < 3:
-            agent.sendCommand("discardCurrentItem")
-
-def seeker(agent, obs, yaw, pos, life):
-    global is_in, going_to
-
-    if is_in == going_to:
-        agent.sendCommand("move 0")
-    else:
-        yaw_to_next = calcYawTo(*vg[going_to], *pos)
-
-    pitch = obs.get(u'Pitch')
-
-    if pitch < 0:
-        agent.sendCommand("pitch 0") # stop looking up
-
-    # Find shortest angular distance between the two yaws, preserving sign:
-    deltaYaw = yaw_to_next - yaw
-    while deltaYaw < -180:
-        deltaYaw += 360;
-    while deltaYaw > 180:
-        deltaYaw -= 360;
-    deltaYaw /= 180.0;
-    # And turn:
-    agent.sendCommand("turn " + str(deltaYaw))
-
-    dist = distance(pos[0], pos[2], vg[going_to][0], vg[going_to][2])
-
-    if dist > 1.8:
-        agent.sendCommand("move 1")
-    else:
-        agent.sendCommand("move 0")
-
-        is_in = going_to
-        going_to = random.choice(list(edges[going_to] - {is_in}))
-        print("going to ", going_to)
-
 running = True
 current_obs = [{} for x in range(NUM_AGENTS)]
 current_yaw = [0 for x in range(NUM_AGENTS)]
@@ -385,6 +391,8 @@ current_pos = [(0, 0, 0) for x in range(NUM_AGENTS)]
 current_life = [20 for x in range(NUM_AGENTS)]
 unresponsive_count = [10 for x in range(NUM_AGENTS)]
 num_responsive_agents = lambda: sum([urc > 0 for urc in unresponsive_count])
+
+seeker = Seeker(agent_hosts[0], '0')
 
 timed_out = False
 
@@ -412,7 +420,9 @@ while num_responsive_agents() > 0 and not timed_out:
                 current_pos[i] = (data.get(u'XPos'), data.get(u'YPos'), data.get(u'ZPos'))
 
     #runner(agent_hosts[1], current_obs[1], current_yaw[1], current_pos[1], current_life[1])
-    seeker(agent_hosts[0], current_obs[0], current_yaw[0], current_pos[0], current_life[0])
+    
+    seeker.update(current_obs[0])
+    seeker.loop()
 
 # mission has ended.
 print("Mission over")
