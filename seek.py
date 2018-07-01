@@ -38,9 +38,6 @@ if agent_hosts[0].receivedArgument("help"):
 DEBUG = agent_hosts[0].receivedArgument("debug")
 NUM_AGENTS = agent_hosts[0].getIntArgument("agents")
 
-# For a bit more fun, set MOB_TYPE = "Creeper"...
-MOB_TYPE = "Villager"
-
 agent_hosts += [MalmoPython.AgentHost() for x in range(1, NUM_AGENTS)]
 
 # Set up debug output:
@@ -111,7 +108,7 @@ def safeWaitForStart(agent_hosts):
     print()
     print("Mission has started.")
 
-def getXML():
+def getXML(x, y, z):
     xml = '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
             <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             
@@ -134,6 +131,7 @@ def getXML():
                 <ServerHandlers>
                   <FlatWorldGenerator destroyAfterUse="true" forceReset="true"/>
                   <DrawingDecorator>
+                    <!-- Outer wall -->
                     <DrawCuboid x1="0" y1="4" z1="0" x2="30" y2="6" z2="40" type="brick_block"/>
                     <DrawCuboid x1="1" y1="4" z1="1" x2="29" y2="7" z2="39" type="air"/>
 
@@ -240,7 +238,8 @@ def getXML():
               <!--AgentSection mode="Survival">
                 <Name>Runner</Name>
                 <AgentStart>
-                  <Placement x="0" y="5.0" z="10" yaw="0"/>
+                  <Placement x="''' + str(x) + '''" y="''' + str(y) + '''" 
+                    z="''' + str(z) + '''" yaw="0"/>
                     <Inventory>
                         <InventoryItem slot="0" type="diamond"/>
                     </Inventory>
@@ -260,22 +259,6 @@ def getXML():
             </Mission>'''
 
     return xml
-
-# Set up a client pool
-client_pool = MalmoPython.ClientPool()
-for x in range(10000, 10000 + NUM_AGENTS):
-    client_pool.add(MalmoPython.ClientInfo('127.0.0.1', x))
-
-my_mission = MalmoPython.MissionSpec(getXML(), True)
-my_mission_record = MalmoPython.MissionRecordSpec()
-
-expID = str(uuid.uuid4())
-
-for i in range(len(agent_hosts)):
-    agent_hosts[i].setRewardsPolicy(MalmoPython.RewardsPolicy.KEEP_ALL_REWARDS)
-    safeStartMission(agent_hosts[i], my_mission, client_pool, my_mission_record, i, expID)
-
-safeWaitForStart(agent_hosts)
 
 vgi = ['0', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 
     'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q']
@@ -342,6 +325,23 @@ can_see = {
     'P': {'P', 'Q'},
     'Q': {'Q', 'L', 'P', 'K'}
 }
+
+# Set up a client pool
+client_pool = MalmoPython.ClientPool()
+for x in range(10000, 10000 + NUM_AGENTS):
+    client_pool.add(MalmoPython.ClientInfo('127.0.0.1', x))
+
+runner_pos = vg[random.choice(vgi[11:])]
+my_mission = MalmoPython.MissionSpec(getXML(*runner_pos), True)
+my_mission_record = MalmoPython.MissionRecordSpec()
+
+expID = str(uuid.uuid4())
+
+for i in range(len(agent_hosts)):
+    agent_hosts[i].setRewardsPolicy(MalmoPython.RewardsPolicy.KEEP_ALL_REWARDS)
+    safeStartMission(agent_hosts[i], my_mission, client_pool, my_mission_record, i, expID)
+
+safeWaitForStart(agent_hosts)
 
 def calcYawTo(fx, fy, fz, x, y, z):
     dx = fx - x
@@ -451,7 +451,6 @@ class Seeker(Agent):
         f = normalize(f, norm='l1')
 
         chosen = vgi[np.random.choice(range(0, 18), p = f[0])]
-        print(chosen)
 
         return chosen
 
