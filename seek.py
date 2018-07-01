@@ -12,6 +12,8 @@ import random
 import re
 import math
 import uuid
+import numpy as np
+from sklearn.preprocessing import normalize
 from collections import namedtuple
 
 EntityInfo = namedtuple('EntityInfo', 'x, y, z, name')
@@ -275,6 +277,9 @@ for i in range(len(agent_hosts)):
 
 safeWaitForStart(agent_hosts)
 
+vgi = ['0', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 
+    'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q']
+
 vg = {
     '0': (15.5, 3, 1.5),
     'A': (22.5, 3, 8.5),
@@ -338,6 +343,29 @@ can_see = {
     'Q': {'Q', 'L', 'P', 'K'}
 }
 
+def calcYawTo(fx, fy, fz, x, y, z):
+    dx = fx - x
+    dz = fz - z
+
+    return -180 * math.atan2(dx, dz) / math.pi
+
+def distance(x1, y1, z1, x2, y2, z2):
+    return abs(x1 - x2) + abs(z1 - z2)
+
+class HiddenMarkovModel:
+    def __init__(self, f0, T):
+        self.f = f0
+        self.T = T
+
+    def get(self):
+        return np.array(self.f.T)
+
+    def tick(self, O):
+        self.f = O * self.T.T * self.f
+        self.f /= sum(self.f)
+
+        return np.array(self.f.T)
+
 class Agent:
     def __init__(self, agent_host, starting_pos = '0'):
         self.agent_host = agent_host
@@ -382,7 +410,7 @@ class Agent:
         # And turn:
         self.do("turn " + str(deltaYaw))
 
-        dist = distance(self.pos[0], self.pos[2], vg[self.going_to][0], vg[self.going_to][2])
+        dist = distance(*self.pos, *vg[self.going_to])
 
         if dist > 1.8:
             agent.sendCommand("move %d" % self.speed)
@@ -392,21 +420,45 @@ class Agent:
             self.current, self.going_to = self.going_to, self.get_next([self.current])
 
 class Seeker(Agent):
-    pass
+    def __init__(self, agent_host, starting_pos = '0'):
+        super().__init__(agent_host, starting_pos)
+
+        f0 = np.matrix([1/18] * 18).T
+        T = np.matrix([[4.3 / distance(*vg[vgi[i]], *vg[vgi[j]]) 
+                if vgi[j] in edges[vgi[i]] else 0 
+                for j in range(0, 18)]
+            for i in range(0, 18)]).clip(0, 1)
+
+        for i in range(0, 18):
+            T[i, i] = 1 - (T[i].sum() / len(edges[vgi[i]]))
+
+            T[i] = normalize(np.matrix(T[i]), norm='l1')[0]
+
+        self.hmm = HiddenMarkovModel(f0, T)
+
+    def get_next(self, avoid = []):
+        O = np.diag([1] * 18)
+
+        f = self.hmm.tick(O)
+
+        neighbors_index = set(range(0, 18))
+        neighbors_index -= set(map(lambda x: vgi.index(x), list(edges[self.going_to])))
+        neighbors_index -= set(map(lambda x: vgi.index(x), avoid))
+
+        for i in neighbors_index:
+            f[0, i] = 0
+
+        f = normalize(f, norm='l1')
+
+        chosen = vgi[np.random.choice(range(0, 18), p = f[0])]
+        print(chosen)
+
+        return chosen
 
 class Runner(Agent):
     pass
 
 time.sleep(1)
-
-def calcYawTo(fx, fy, fz, x, y, z):
-    dx = fx - x
-    dz = fz - z
-
-    return -180 * math.atan2(dx, dz) / math.pi
-
-def distance(x1, y1, x2, y2):
-    return abs(x1 - x2) + abs(y1 - y2)
 
 running = True
 current_obs = [{} for x in range(NUM_AGENTS)]
