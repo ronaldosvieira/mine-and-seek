@@ -190,6 +190,24 @@ def getXML():
                     <DrawCuboid x1="5" y1="4" z1="30" x2="1" y2="6" z2="30" type="brick_block"/>
 
                     <DrawBlock x="15" y="3" z="1" type="diamond_block"/>
+
+                    <!-- A --> <DrawBlock x="8" y="3" z="8" type="gold_block"/>
+                    <!-- B --> <DrawBlock x="22" y="3" z="8" type="gold_block"/>
+                    <!-- C --> <DrawBlock x="15" y="3" z="13" type="gold_block"/>
+                    <!-- D --> <DrawBlock x="7" y="3" z="18" type="gold_block"/>
+                    <!-- E --> <DrawBlock x="15" y="3" z="18" type="gold_block"/>
+                    <!-- F --> <DrawBlock x="23" y="3" z="18" type="gold_block"/>
+                    <!-- G --> <DrawBlock x="28" y="3" z="25" type="gold_block"/>
+                    <!-- H --> <DrawBlock x="23" y="3" z="28" type="gold_block"/>
+                    <!-- I --> <DrawBlock x="7" y="3" z="28" type="gold_block"/>
+                    <!-- J --> <DrawBlock x="2" y="3" z="25" type="gold_block"/>
+                    <!-- K --> <DrawBlock x="15" y="3" z="32" type="gold_block"/>
+                    <!-- L --> <DrawBlock x="7" y="3" z="32" type="gold_block"/>
+                    <!-- M --> <DrawBlock x="28" y="3" z="38" type="gold_block"/>
+                    <!-- N --> <DrawBlock x="23" y="3" z="38" type="gold_block"/>
+                    <!-- O --> <DrawBlock x="18" y="3" z="38" type="gold_block"/>
+                    <!-- P --> <DrawBlock x="8" y="3" z="38" type="gold_block"/>
+                    <!-- Q --> <DrawBlock x="2" y="3" z="35" type="gold_block"/>
                   </DrawingDecorator>
                   <!--ServerQuitFromTimeUp description="DIDNT_CATCH" timeLimitMs="30000"/-->
                   <ServerQuitWhenAnyAgentFinishes/>
