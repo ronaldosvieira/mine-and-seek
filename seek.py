@@ -345,6 +345,8 @@ class Agent:
         self.current = starting_pos
         self.going_to = starting_pos
 
+        self.speed = 1
+
     def update(self, obs):
         self.pitch = obs['Pitch']
         self.yaw = obs['Yaw']
@@ -380,7 +382,7 @@ class Agent:
         dist = distance(self.pos[0], self.pos[2], vg[self.going_to][0], vg[self.going_to][2])
 
         if dist > 1.8:
-            agent.sendCommand("move 1")
+            agent.sendCommand("move %d" % self.speed)
         else:
             agent.sendCommand("move 0")
 
