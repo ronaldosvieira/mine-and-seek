@@ -359,8 +359,11 @@ class Agent:
     def go_to(self, node):
         self.going_to = node
 
-    def get_next(self):
-        return random.choice(list(edges[self.going_to]))
+    def get_next(self, avoid = []):
+        try:
+            return random.choice(list(edges[self.going_to] - set(avoid)))
+        except:
+            return random.choice(list(edges[self.going_to]))
 
     def loop(self):
         if self.pitch < 0:
@@ -386,9 +389,7 @@ class Agent:
         else:
             agent.sendCommand("move 0")
 
-            self.current = self.going_to
-            self.going_to = self.get_next()
-            print("going to", self.going_to)
+            self.current, self.going_to = self.going_to, self.get_next([self.current])
 
 class Seeker(Agent):
     pass
