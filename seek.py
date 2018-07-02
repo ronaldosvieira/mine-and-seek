@@ -373,6 +373,7 @@ class Agent:
         self.going_to = starting_pos
 
         self.speed = 1
+        self.seeing = set()
 
         f0 = np.matrix([1/18] * 18).T
         T = np.matrix([[4.3 / distance(*vg[vgi[i]], *vg[vgi[j]]) 
@@ -392,6 +393,7 @@ class Agent:
         self.yaw = obs['Yaw']
         self.pos = (obs['XPos'], obs['YPos'], obs['ZPos'])
         self.life = obs['Life']
+        self.seeing = obs['Seeing']
 
     def do(self, command):
         self.agent_host.sendCommand(command)
@@ -434,6 +436,11 @@ class Agent:
 class Seeker(Agent):
     def tick(self, dt):
         O = np.diag([1] * 18)
+        
+        if 'Runner' in self.seeing:
+            O = normalize(np.matrix([4.3 / distance(*runner.pos, *vg[vgi[i]]) 
+                for i in range(0, 18)]), norm='l1')
+            O = np.diag(O[0])
 
         self.hmm.tick(O, dt)
 
@@ -456,6 +463,11 @@ class Seeker(Agent):
 class Runner(Agent):
     def tick(self, dt):
         O = np.diag([1] * 18)
+        
+        if 'Seeker' in self.seeing:
+            O = normalize(np.matrix([4.3 / distance(*seeker.pos, *vg[vgi[i]]) 
+                for i in range(0, 18)]), norm='l1')
+            O = np.diag(O[0])
 
         self.hmm.tick(O, dt)
 
@@ -505,6 +517,7 @@ try:
                 obvsText = world_state.observations[-1].text
                 data = json.loads(obvsText)
                 current_obs[i] = data
+                current_obs[i]['Seeing'] = set()
 
             dt = time.time() - ai_timer
             if dt > 0.5:
@@ -514,9 +527,15 @@ try:
                 ai_timer = 0.0
 
             if agent == seeker.agent_host:
+                if runner.current in can_see[seeker.current]:
+                    current_obs[i]['Seeing'].add('Runner')
+
                 seeker.update(current_obs[i])
                 seeker.loop()
             elif agent == runner.agent_host:
+                if runner.current in can_see[seeker.current]:
+                    current_obs[i]['Seeing'].add('Seeker')
+
                 runner.update(current_obs[i])
                 runner.loop()
 except KeyboardInterrupt:
