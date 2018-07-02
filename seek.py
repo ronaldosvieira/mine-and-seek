@@ -438,8 +438,8 @@ class Seeker(Agent):
         O = np.diag([1] * 18)
         
         if 'Runner' in self.seeing:
-            O = normalize(np.matrix([4.3 / distance(*runner.pos, *vg[vgi[i]]) 
-                for i in range(0, 18)]), norm='l1')
+            O = normalize(np.matrix(np.square([4.3 / distance(*runner.pos, *vg[vgi[i]]) 
+                for i in range(0, 18)])), norm='l1')
             O = np.diag(O[0])
 
         self.hmm.tick(O, dt)
@@ -465,8 +465,8 @@ class Runner(Agent):
         O = np.diag([1] * 18)
         
         if 'Seeker' in self.seeing:
-            O = normalize(np.matrix([4.3 / distance(*seeker.pos, *vg[vgi[i]]) 
-                for i in range(0, 18)]), norm='l1')
+            O = normalize(np.matrix(np.square([4.3 / distance(*seeker.pos, *vg[vgi[i]]) 
+                for i in range(0, 18)])), norm='l1')
             O = np.diag(O[0])
 
         self.hmm.tick(O, dt)
