@@ -23,7 +23,7 @@ agent_hosts = [MalmoPython.AgentHost()]
 
 # Parse the command-line options:
 agent_hosts[0].addOptionalFlag("debug,d", "Display debug information.")
-agent_hosts[0].addOptionalIntArgument("agents,n", "Number of agents to use.", 1)
+agent_hosts[0].addOptionalIntArgument("agents,n", "Number of agents to use.", 2)
 
 try:
     agent_hosts[0].parse(sys.argv)
@@ -235,11 +235,10 @@ def getXML(x, y, z):
                 </AgentHandlers>
               </AgentSection>
 
-              <!--AgentSection mode="Survival">
+              <AgentSection mode="Survival">
                 <Name>Runner</Name>
                 <AgentStart>
-                  <Placement x="''' + str(x) + '''" y="''' + str(y) + '''" 
-                    z="''' + str(z) + '''" yaw="0"/>
+                  <Placement x="''' + str(x) + '''" y="5.0" z="''' + str(z) + '''" yaw="0"/>
                     <Inventory>
                         <InventoryItem slot="0" type="diamond"/>
                     </Inventory>
@@ -255,7 +254,7 @@ def getXML(x, y, z):
                   <ContinuousMovementCommands turnSpeedDegs="840"/>
                   <InventoryCommands/>
                 </AgentHandlers>
-              </AgentSection-->
+              </AgentSection>
             </Mission>'''
 
     return xml
@@ -331,8 +330,8 @@ client_pool = MalmoPython.ClientPool()
 for x in range(10000, 10000 + NUM_AGENTS):
     client_pool.add(MalmoPython.ClientInfo('127.0.0.1', x))
 
-runner_pos = vg[random.choice(vgi[11:])]
-my_mission = MalmoPython.MissionSpec(getXML(*runner_pos), True)
+runner_pos = random.choice(vgi[11:])
+my_mission = MalmoPython.MissionSpec(getXML(*vg[runner_pos]), True)
 my_mission_record = MalmoPython.MissionRecordSpec()
 
 expID = str(uuid.uuid4())
@@ -374,6 +373,19 @@ class Agent:
         self.going_to = starting_pos
 
         self.speed = 1
+
+        f0 = np.matrix([1/18] * 18).T
+        T = np.matrix([[4.3 / distance(*vg[vgi[i]], *vg[vgi[j]]) 
+                if vgi[j] in edges[vgi[i]] else 0 
+                for j in range(0, 18)]
+            for i in range(0, 18)]).clip(0, 1)
+
+        for i in range(0, 18):
+            T[i, i] = 1 - (T[i].sum() / len(edges[vgi[i]]))
+
+            T[i] = normalize(np.matrix(T[i]), norm='l1')[0]
+
+        self.hmm = HiddenMarkovModel(f0, T)
 
     def update(self, obs):
         self.pitch = obs['Pitch']
@@ -420,26 +432,29 @@ class Agent:
             self.current, self.going_to = self.going_to, self.get_next([self.current])
 
 class Seeker(Agent):
-    def __init__(self, agent_host, starting_pos = '0'):
-        super().__init__(agent_host, starting_pos)
-
-        f0 = np.matrix([1/18] * 18).T
-        T = np.matrix([[4.3 / distance(*vg[vgi[i]], *vg[vgi[j]]) 
-                if vgi[j] in edges[vgi[i]] else 0 
-                for j in range(0, 18)]
-            for i in range(0, 18)]).clip(0, 1)
-
-        for i in range(0, 18):
-            T[i, i] = 1 - (T[i].sum() / len(edges[vgi[i]]))
-
-            T[i] = normalize(np.matrix(T[i]), norm='l1')[0]
-
-        self.hmm = HiddenMarkovModel(f0, T)
-
     def get_next(self, avoid = []):
         O = np.diag([1] * 18)
 
         f = self.hmm.tick(O)
+
+        neighbors_index = set(range(0, 18))
+        neighbors_index -= set(map(lambda x: vgi.index(x), list(edges[self.going_to])))
+        neighbors_index -= set(map(lambda x: vgi.index(x), avoid))
+
+        for i in neighbors_index:
+            f[0, i] = 0
+
+        f = list(normalize(f, norm='l1')[0])
+
+        chosen = vgi[np.random.choice(range(0, 18), p = f)]
+
+        return chosen
+
+class Runner(Agent):
+    def get_next(self, avoid = []):
+        O = np.diag([1] * 18)
+
+        f = 1 / self.hmm.tick(O)
 
         neighbors_index = set(range(0, 18))
         neighbors_index -= set(map(lambda x: vgi.index(x), list(edges[self.going_to])))
@@ -454,50 +469,44 @@ class Seeker(Agent):
 
         return chosen
 
-class Runner(Agent):
-    pass
-
 time.sleep(1)
 
 running = True
 current_obs = [{} for x in range(NUM_AGENTS)]
-current_yaw = [0 for x in range(NUM_AGENTS)]
-current_pos = [(0, 0, 0) for x in range(NUM_AGENTS)]
-current_life = [20 for x in range(NUM_AGENTS)]
 unresponsive_count = [10 for x in range(NUM_AGENTS)]
 num_responsive_agents = lambda: sum([urc > 0 for urc in unresponsive_count])
 
 seeker = Seeker(agent_hosts[0], '0')
+runner = Runner(agent_hosts[1], runner_pos)
 
 timed_out = False
 
 yaw_to_mob = 0
 
-while num_responsive_agents() > 0 and not timed_out:
-    for i in range(NUM_AGENTS):
-        agent = agent_hosts[i]
+try:
+    while num_responsive_agents() > 0 and not timed_out:
+        for i in range(NUM_AGENTS):
+            agent = agent_hosts[i]
 
-        world_state = agent.getWorldState()
+            world_state = agent.getWorldState()
 
-        if world_state.is_mission_running == False:
-            timed_out = True
-        elif world_state.number_of_observations_since_last_state > 0:
-            unresponsive_count[i] = 10
+            if world_state.is_mission_running == False:
+                timed_out = True
+            elif world_state.number_of_observations_since_last_state > 0:
+                unresponsive_count[i] = 10
 
-            obvsText = world_state.observations[-1].text
-            data = json.loads(obvsText)
-            current_obs[i] = data
+                obvsText = world_state.observations[-1].text
+                data = json.loads(obvsText)
+                current_obs[i] = data
 
-            current_yaw[i] = data.get(u'Yaw', current_yaw[i])
-            current_life[i] = data.get(u'Life', current_life[i])
-
-            if 'XPos' in data and 'YPos' in data and 'ZPos' in data:
-                current_pos[i] = (data.get(u'XPos'), data.get(u'YPos'), data.get(u'ZPos'))
-
-    #runner(agent_hosts[1], current_obs[1], current_yaw[1], current_pos[1], current_life[1])
-    
-    seeker.update(current_obs[0])
-    seeker.loop()
+            if agent == seeker.agent_host:
+                seeker.update(current_obs[0])
+                seeker.loop()
+            elif agent == runner.agent_host:
+                runner.update(current_obs[1])
+                runner.loop()
+except KeyboardInterrupt:
+    pass
 
 # mission has ended.
 print("Mission over")
