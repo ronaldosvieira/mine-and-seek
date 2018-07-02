@@ -458,12 +458,20 @@ class Agent:
 
 class Seeker(Agent):
     def tick(self, dt):
-        O = np.diag([1] * 18)
-        
         if 'Runner' in self.seeing:
             O = normalize(np.matrix(np.square([4.3 / distance(*runner.pos, *vg[vgi[i]]) 
                 for i in range(0, 18)])), norm='l1')
             O = np.diag(O[0])
+        else:
+            O = [1] * 18
+            
+            neighbors_index = set(map(lambda x: vgi.index(x), 
+                                        list(edges[self.current]) + [self.current]))
+
+            for i in neighbors_index:
+                O[i] = 0
+
+            O = np.diag(O)
 
         self.hmm.tick(O, dt)
 
@@ -488,19 +496,27 @@ class Seeker(Agent):
 
 class Runner(Agent):
     def tick(self, dt):
-        O = np.diag([1] * 18)
-        
         if 'Seeker' in self.seeing:
             O = normalize(np.matrix(np.square([4.3 / distance(*seeker.pos, *vg[vgi[i]]) 
                 for i in range(0, 18)])), norm='l1')
             O = np.diag(O[0])
+        else:
+            O = [1] * 18
+            
+            neighbors_index = set(map(lambda x: vgi.index(x), 
+                                        list(edges[self.current]) + [self.current]))
+
+            for i in neighbors_index:
+                O[i] = 0
+
+            O = np.diag(O)
 
         self.hmm.tick(O, dt)
 
     def get_next(self, avoid = []):
         agent_is_there = 1 - self.hmm.get()
         guard_goal = 1 - dist_to_obj
-        
+
         utility = 0.9 * agent_is_there + 0.1 * guard_goal
 
         neighbors_index = set(range(0, 18))
