@@ -455,7 +455,7 @@ class Agent:
         else:
             agent.sendCommand("move 0")
 
-            self.current, self.going_to = self.going_to, self.choose([self.current])
+            self.current, self.going_to = self.going_to, self.choose()
 
 class Seeker(Agent):
     def tick(self, dt):
@@ -585,13 +585,13 @@ try:
                 runner.update(current_obs[i])
                 runner.loop()
 
-            if distance(*seeker.pos, *runner.pos) < 1:
-                print("Seeker wins!")
-                timed_out = True
+        if distance(*seeker.pos, *runner.pos) < 1:
+            print("Seeker wins!")
+            timed_out = True
 
-            if distance(*runner.pos, *vg['0']) < 1:
-                print("Runner wins!")
-                timed_out = True
+        if distance(*runner.pos, *vg['0']) < 1:
+            print("Runner wins!")
+            timed_out = True
 except KeyboardInterrupt:
     pass
 
