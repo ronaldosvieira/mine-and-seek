@@ -454,7 +454,7 @@ class Agent:
         else:
             agent.sendCommand("move 0")
 
-            self.current, self.going_to = self.going_to, self.get_next([self.current])
+            self.current, self.going_to = self.going_to, self.choose([self.current])
 
 class Seeker(Agent):
     def tick(self, dt):
@@ -475,7 +475,7 @@ class Seeker(Agent):
 
         self.hmm.tick(O, dt)
 
-    def get_next(self, avoid = []):
+    def choose(self, avoid = []):
         agent_is_there = self.hmm.get()
         chase_goal = dist_to_obj
 
@@ -513,7 +513,7 @@ class Runner(Agent):
 
         self.hmm.tick(O, dt)
 
-    def get_next(self, avoid = []):
+    def choose(self, avoid = []):
         agent_is_there = 1 - self.hmm.get()
         guard_goal = 1 - dist_to_obj
 
