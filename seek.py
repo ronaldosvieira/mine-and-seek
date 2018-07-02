@@ -359,8 +359,8 @@ class HiddenMarkovModel:
     def get(self):
         return np.array(self.f.T)
 
-    def tick(self, O):
-        self.f = O * self.T.T * self.f
+    def tick(self, O, dt = 1.0):
+        self.f = O * (dt * self.T.T) * self.f
         self.f /= sum(self.f)
 
         return np.array(self.f.T)
@@ -432,10 +432,13 @@ class Agent:
             self.current, self.going_to = self.going_to, self.get_next([self.current])
 
 class Seeker(Agent):
-    def get_next(self, avoid = []):
+    def tick(self, dt):
         O = np.diag([1] * 18)
 
-        f = self.hmm.tick(O)
+        self.hmm.tick(O, dt)
+
+    def get_next(self, avoid = []):
+        f = self.hmm.get()
 
         neighbors_index = set(range(0, 18))
         neighbors_index -= set(map(lambda x: vgi.index(x), list(edges[self.going_to])))
@@ -451,10 +454,13 @@ class Seeker(Agent):
         return chosen
 
 class Runner(Agent):
-    def get_next(self, avoid = []):
+    def tick(self, dt):
         O = np.diag([1] * 18)
 
-        f = 1 / self.hmm.tick(O)
+        self.hmm.tick(O, dt)
+
+    def get_next(self, avoid = []):
+        f = 1 / self.hmm.get()
 
         neighbors_index = set(range(0, 18))
         neighbors_index -= set(map(lambda x: vgi.index(x), list(edges[self.going_to])))
@@ -480,6 +486,7 @@ seeker = Seeker(agent_hosts[0], '0')
 runner = Runner(agent_hosts[1], runner_pos)
 
 timed_out = False
+ai_timer = time.time()
 
 yaw_to_mob = 0
 
@@ -499,11 +506,18 @@ try:
                 data = json.loads(obvsText)
                 current_obs[i] = data
 
+            dt = time.time() - ai_timer
+            if dt > 0.5:
+                seeker.tick(dt)
+                runner.tick(dt)
+
+                ai_timer = 0.0
+
             if agent == seeker.agent_host:
-                seeker.update(current_obs[0])
+                seeker.update(current_obs[i])
                 seeker.loop()
             elif agent == runner.agent_host:
-                runner.update(current_obs[1])
+                runner.update(current_obs[i])
                 runner.loop()
 except KeyboardInterrupt:
     pass
