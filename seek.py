@@ -13,6 +13,7 @@ import re
 import math
 import uuid
 import numpy as np
+import tkinter as tk
 from sklearn.preprocessing import normalize
 from collections import namedtuple
 
@@ -533,6 +534,33 @@ class Runner(Agent):
 
         return chosen
 
+scale = 10
+root = tk.Tk()
+root.wm_title("Utilities")
+canvas = tk.Canvas(root, width = 30 * scale, height = 40 * scale, 
+    borderwidth = 0, highlightthickness = 0, bg = "white")
+canvas.grid()
+root.update()
+
+def drawGraph(canvas, root, agent):
+    canvas.delete("all")
+
+    node_radius = 2
+    probabilities = np.log2(1 + normalize(agent.hmm.get(), norm='l1')) * 255
+
+    for i, node in enumerate(vgi):
+        color = int(probabilities[0, i])
+        fill = '#%02x%02x%02x' % (255, 255 - color, 255 - color)
+        outline = 'red' if node == agent.current else 'black'
+        width = 2 if node == agent.current else 1
+
+        canvas.create_oval((vg[node][0] - node_radius / 2) * scale,
+                                (40 - vg[node][2] - node_radius / 2) * scale,
+                                (vg[node][0] + node_radius / 2) * scale,
+                                (40 - vg[node][2] + node_radius / 2) * scale,
+                                outline = outline, fill = fill, width = width)
+    root.update()
+
 time.sleep(1)
 
 running = True
@@ -584,6 +612,8 @@ try:
 
                 runner.update(current_obs[i])
                 runner.loop()
+
+        drawGraph(canvas, root, seeker)
 
         if distance(*seeker.pos, *runner.pos) < 1:
             print("Seeker wins!")
