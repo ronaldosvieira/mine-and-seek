@@ -397,6 +397,7 @@ class Agent:
 
         self.speed = 1
         self.seeing = set()
+        self.pos = (float("inf"), float("inf"), float("inf"))
 
         f0 = np.matrix([1/18] * 18).T
         T = np.matrix([[4.3 / distance(*vg[vgi[i]], *vg[vgi[j]]) 
@@ -583,6 +584,14 @@ try:
 
                 runner.update(current_obs[i])
                 runner.loop()
+
+            if distance(*seeker.pos, *runner.pos) < 1:
+                print("Seeker wins!")
+                timed_out = True
+
+            if distance(*runner.pos, *vg['0']) < 1:
+                print("Runner wins!")
+                timed_out = True
 except KeyboardInterrupt:
     pass
 
