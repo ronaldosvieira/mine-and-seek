@@ -259,6 +259,15 @@ def getXML(x, y, z):
 
     return xml
 
+def calcYawTo(fx, fy, fz, x, y, z):
+    dx = fx - x
+    dz = fz - z
+
+    return -180 * math.atan2(dx, dz) / math.pi
+
+def distance(x1, y1, z1, x2, y2, z2):
+    return abs(x1 - x2) + abs(z1 - z2)
+
 vgi = ['0', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 
     'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q']
 
@@ -325,6 +334,29 @@ can_see = {
     'Q': {'Q', 'L', 'P', 'K'}
 }
 
+dist_to_obj = np.array([
+    0,
+    distance(*vg['A'], *vg['0']),
+    distance(*vg['B'], *vg['0']),
+    distance(*vg['C'], *vg['0']),
+    distance(*vg['D'], *vg['0']),
+    distance(*vg['E'], *vg['0']),
+    distance(*vg['F'], *vg['0']),
+    distance(*vg['G'], *vg['0']),
+    distance(*vg['H'], *vg['0']),
+    distance(*vg['I'], *vg['0']),
+    distance(*vg['J'], *vg['0']),
+    distance(*vg['K'], *vg['0']),
+    distance(*vg['L'], *vg['0']),
+    distance(*vg['M'], *vg['0']),
+    distance(*vg['N'], *vg['0']),
+    distance(*vg['O'], *vg['0']),
+    distance(*vg['P'], *vg['0']),
+    distance(*vg['Q'], *vg['0']),
+])
+
+dist_to_obj /= sum(dist_to_obj)
+
 # Set up a client pool
 client_pool = MalmoPython.ClientPool()
 for x in range(10000, 10000 + NUM_AGENTS):
@@ -341,15 +373,6 @@ for i in range(len(agent_hosts)):
     safeStartMission(agent_hosts[i], my_mission, client_pool, my_mission_record, i, expID)
 
 safeWaitForStart(agent_hosts)
-
-def calcYawTo(fx, fy, fz, x, y, z):
-    dx = fx - x
-    dz = fz - z
-
-    return -180 * math.atan2(dx, dz) / math.pi
-
-def distance(x1, y1, z1, x2, y2, z2):
-    return abs(x1 - x2) + abs(z1 - z2)
 
 class HiddenMarkovModel:
     def __init__(self, f0, T):
@@ -445,18 +468,21 @@ class Seeker(Agent):
         self.hmm.tick(O, dt)
 
     def get_next(self, avoid = []):
-        f = self.hmm.get()
+        agent_is_there = self.hmm.get()
+        chase_goal = dist_to_obj
+
+        utility = 0.9 * agent_is_there + 0.1 * chase_goal
 
         neighbors_index = set(range(0, 18))
         neighbors_index -= set(map(lambda x: vgi.index(x), list(edges[self.going_to])))
         neighbors_index -= set(map(lambda x: vgi.index(x), avoid))
 
         for i in neighbors_index:
-            f[0, i] = 0
+            utility[0, i] = 0
 
-        f = list(normalize(f, norm='l1')[0])
+        utility = list(normalize(utility, norm='l1')[0])
 
-        chosen = vgi[np.random.choice(range(0, 18), p = f)]
+        chosen = vgi[np.random.choice(range(0, 18), p = utility)]
 
         return chosen
 
@@ -472,18 +498,21 @@ class Runner(Agent):
         self.hmm.tick(O, dt)
 
     def get_next(self, avoid = []):
-        f = 1 / self.hmm.get()
+        agent_is_there = 1 - self.hmm.get()
+        guard_goal = 1 - dist_to_obj
+        
+        utility = 0.9 * agent_is_there + 0.1 * guard_goal
 
         neighbors_index = set(range(0, 18))
         neighbors_index -= set(map(lambda x: vgi.index(x), list(edges[self.going_to])))
         neighbors_index -= set(map(lambda x: vgi.index(x), avoid))
 
         for i in neighbors_index:
-            f[0, i] = 0
+            utility[0, i] = 0
 
-        f = normalize(f, norm='l1')
+        utility = list(normalize(utility, norm='l1')[0])
 
-        chosen = vgi[np.random.choice(range(0, 18), p = f[0])]
+        chosen = vgi[np.random.choice(range(0, 18), p = utility)]
 
         return chosen
 
