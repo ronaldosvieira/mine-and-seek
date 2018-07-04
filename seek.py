@@ -572,28 +572,35 @@ def drawGraph(canvas, root, seeker, runner):
     probabilities = np.log2(1 + normalize(seeker.hmm.get(), norm='l1')) * 255
 
     for i, node in enumerate(vgi):
+        for j, neighbor in enumerate(vgi):
+            if neighbor in edges[node] and j < i:
+                canvas.create_line((30 - vg[node][0]) * scale, (40 - vg[node][2]) * scale,
+                            (30 - vg[neighbor][0]) * scale, (40 - vg[neighbor][2]) * scale,
+                            fill = 'black')
+
+    for i, node in enumerate(vgi):
         color = int(probabilities[0, i])
         fill = '#%02x%02x%02x' % (255, 255 - color, 255 - color)
-        outline = 'red' if node == seeker.current else 'black'
-        width = 2 if node == seeker.current else 1
+        outline = 'red' if node in (seeker.current, seeker.going_to) else 'black'
+        width = 2 if node in (seeker.current, seeker.going_to) else 1
 
         canvas.create_oval((30 - vg[node][0] - node_radius / 2) * scale,
-                                (40 - vg[node][2] - node_radius / 2) * scale,
-                                (30 - vg[node][0] + node_radius / 2) * scale,
-                                (40 - vg[node][2] + node_radius / 2) * scale,
-                                outline = outline, fill = fill, width = width)
+                    (40 - vg[node][2] - node_radius / 2) * scale,
+                    (30 - vg[node][0] + node_radius / 2) * scale,
+                    (40 - vg[node][2] + node_radius / 2) * scale,
+                    outline = outline, fill = fill, width = width)
 
     canvas.create_oval((30 - seeker.pos[0] - 1 / 2) * scale,
-                        (40 - seeker.pos[2] - 1 / 2) * scale,
-                        (30 - seeker.pos[0] + 1 / 2) * scale,
-                        (40 - seeker.pos[2] + 1 / 2) * scale,
-                        outline = 'blue', fill = 'blue')
+                (40 - seeker.pos[2] - 1 / 2) * scale,
+                (30 - seeker.pos[0] + 1 / 2) * scale,
+                (40 - seeker.pos[2] + 1 / 2) * scale,
+                outline = 'blue', fill = 'blue')
 
     canvas.create_oval((30 - runner.pos[0] - 1 / 2) * scale,
-                        (40 - runner.pos[2] - 1 / 2) * scale,
-                        (30 - runner.pos[0] + 1 / 2) * scale,
-                        (40 - runner.pos[2] + 1 / 2) * scale,
-                        outline = 'grey', fill = 'grey')
+                (40 - runner.pos[2] - 1 / 2) * scale,
+                (30 - runner.pos[0] + 1 / 2) * scale,
+                (40 - runner.pos[2] + 1 / 2) * scale,
+                outline = 'grey', fill = 'grey')
 
     root.update()
 
