@@ -453,10 +453,7 @@ class Agent:
         self.going_to = node
 
     def get_next(self, avoid = []):
-        try:
-            return random.choice(list(edges[self.going_to] - set(avoid)))
-        except:
-            return random.choice(list(edges[self.going_to]))
+        return random.choice(list(edges[self.going_to]))
 
     def loop(self):
         if self.pitch < 0:
