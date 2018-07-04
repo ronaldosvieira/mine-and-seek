@@ -637,11 +637,11 @@ try:
                 current_obs[i]['Seeing'] = set()
 
             dt = time.time() - ai_timer
-            if dt > 0.5:
+            if dt > 0.1:
                 seeker.tick(dt)
                 runner.tick(dt)
 
-                ai_timer = 0.0
+                ai_timer = time.time()
 
             if agent == seeker.agent_host:
                 if runner.current in can_see[seeker.current]:
