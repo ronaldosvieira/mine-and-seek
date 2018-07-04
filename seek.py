@@ -484,8 +484,8 @@ class Agent:
 class Seeker(Agent):
     def tick(self, dt):
         if 'Runner' in self.seeing:
-            O = normalize(np.matrix(np.square([4.3 / distance(*runner.pos, *vg[vgi[i]]) 
-                for i in range(0, 18)])), norm='l1')
+            O = normalize(np.matrix([4.3 / distance(*runner.pos, *vg[vgi[i]]) 
+                for i in range(0, 18)]), norm='l1')
             O = np.diag(O[0])
         else:
             O = [1] * 18
@@ -522,8 +522,8 @@ class Seeker(Agent):
 class Runner(Agent):
     def tick(self, dt):
         if 'Seeker' in self.seeing:
-            O = normalize(np.matrix(np.square([4.3 / distance(*seeker.pos, *vg[vgi[i]]) 
-                for i in range(0, 18)])), norm='l1')
+            O = normalize(np.matrix([4.3 / distance(*seeker.pos, *vg[vgi[i]]) 
+                for i in range(0, 18)]), norm='l1')
             O = np.diag(O[0])
         else:
             O = [1] * 18
