@@ -478,7 +478,7 @@ class Agent:
         dist = distance(*self.pos, *vg[self.going_to])
 
         if dist > 1.8:
-            agent.sendCommand("move %d" % self.speed)
+            agent.sendCommand("move %g" % self.speed)
         else:
             agent.sendCommand("move 0")
 
