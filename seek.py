@@ -239,6 +239,12 @@ def getXML(x, y, z):
                 <Name>Seeker</Name>
                 <AgentStart>
                   <Placement x="15.5" y="5.0" z="1.5" yaw="0"/>
+                  <Inventory>
+                    <InventoryItem slot="0" type="diamond_sword"/>
+                    <InventoryItem slot="38" type="diamond_chestplate"/>
+                    <InventoryItem slot="37" type="diamond_leggings"/>
+                    <InventoryItem slot="36" type="diamond_boots"/>
+                  </Inventory>
                 </AgentStart>
                 <AgentHandlers>
                   <ObservationFromFullStats/>
@@ -562,23 +568,36 @@ canvas = tk.Canvas(root, width = 30 * scale, height = 40 * scale,
 canvas.grid()
 root.update()
 
-def drawGraph(canvas, root, agent):
+def drawGraph(canvas, root, seeker, runner):
     canvas.delete("all")
 
     node_radius = 2
-    probabilities = np.log2(1 + normalize(agent.hmm.get(), norm='l1')) * 255
+    probabilities = np.log2(1 + normalize(seeker.hmm.get(), norm='l1')) * 255
 
     for i, node in enumerate(vgi):
         color = int(probabilities[0, i])
         fill = '#%02x%02x%02x' % (255, 255 - color, 255 - color)
-        outline = 'red' if node == agent.current else 'black'
-        width = 2 if node == agent.current else 1
+        outline = 'red' if node == seeker.current else 'black'
+        width = 2 if node == seeker.current else 1
 
-        canvas.create_oval((vg[node][0] - node_radius / 2) * scale,
+        canvas.create_oval((30 - vg[node][0] - node_radius / 2) * scale,
                                 (40 - vg[node][2] - node_radius / 2) * scale,
-                                (vg[node][0] + node_radius / 2) * scale,
+                                (30 - vg[node][0] + node_radius / 2) * scale,
                                 (40 - vg[node][2] + node_radius / 2) * scale,
                                 outline = outline, fill = fill, width = width)
+
+    canvas.create_oval((30 - seeker.pos[0] - 1 / 2) * scale,
+                        (40 - seeker.pos[2] - 1 / 2) * scale,
+                        (30 - seeker.pos[0] + 1 / 2) * scale,
+                        (40 - seeker.pos[2] + 1 / 2) * scale,
+                        outline = 'blue', fill = 'blue')
+
+    canvas.create_oval((30 - runner.pos[0] - 1 / 2) * scale,
+                        (40 - runner.pos[2] - 1 / 2) * scale,
+                        (30 - runner.pos[0] + 1 / 2) * scale,
+                        (40 - runner.pos[2] + 1 / 2) * scale,
+                        outline = 'grey', fill = 'grey')
+
     root.update()
 
 time.sleep(1)
@@ -633,7 +652,7 @@ try:
                 runner.update(current_obs[i])
                 runner.loop()
 
-        drawGraph(canvas, root, seeker)
+        drawGraph(canvas, root, seeker, runner)
 
         if distance(*seeker.pos, *runner.pos) < 1:
             print("Seeker wins!")
