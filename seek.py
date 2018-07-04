@@ -136,6 +136,10 @@ def getXML(x, y, z):
                     <DrawCuboid x1="0" y1="4" z1="0" x2="30" y2="6" z2="40" type="brick_block"/>
                     <DrawCuboid x1="1" y1="4" z1="1" x2="29" y2="7" z2="39" type="air"/>
 
+                    <!-- Observer spot -->
+                    <DrawCuboid x1="0" y1="25" z1="0" x2="30" y2="25" z2="40" type="barrier"/>
+                    <DrawBlock x="15" y="25" z="20" type="air"/>
+
                     <!-- 1 -->
                     <DrawCuboid x1="10" y1="4" z1="10" x2="20" y2="6" z2="15" type="brick_block"/>
                     <DrawCuboid x1="13" y1="4" z1="13" x2="17" y2="6" z2="15" type="air"/>
@@ -215,6 +219,22 @@ def getXML(x, y, z):
                 </ServerHandlers>
               </ServerSection>
               
+              <!--AgentSection mode="Creative">
+                <Name>Observer</Name>
+                <AgentStart>
+                  <Placement x="15.5" y="26" z="20" yaw="90" pitch="90"/>
+                </AgentStart>
+                <AgentHandlers>
+                  <ObservationFromFullStats/>
+                  <AbsoluteMovementCommands/>
+                  <MissionQuitCommands/>
+                  <VideoProducer>
+                    <Width>896</Width>
+                    <Height>640</Height>
+                  </VideoProducer>
+                </AgentHandlers>
+              </AgentSection-->
+
               <AgentSection mode="Survival">
                 <Name>Seeker</Name>
                 <AgentStart>
