@@ -502,12 +502,13 @@ class Seeker(Agent):
 
     def choose(self, avoid = []):
         agent_is_there = self.hmm.get()
-        guard_goal = 1 - dist_to_obj
+        guard_goal = dist_to_obj
 
         utility = 0.9 * agent_is_there + 0.1 * guard_goal
 
         neighbors_index = set(range(0, 18))
         neighbors_index -= set(map(lambda x: vgi.index(x), list(edges[self.going_to])))
+        neighbors_index -= set([vgi.index(self.going_to)])
         neighbors_index -= set(map(lambda x: vgi.index(x), avoid))
 
         for i in neighbors_index:
@@ -546,6 +547,7 @@ class Runner(Agent):
 
         neighbors_index = set(range(0, 18))
         neighbors_index -= set(map(lambda x: vgi.index(x), list(edges[self.going_to])))
+        neighbors_index -= set([vgi.index(self.going_to)])
         neighbors_index -= set(map(lambda x: vgi.index(x), avoid))
 
         for i in neighbors_index:
